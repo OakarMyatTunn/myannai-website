@@ -467,8 +467,9 @@ async function startTranscription() {
     setProgress(35, 'Gemini is processing your file...');
     const activeFile = await waitForFile(apiKey, uploadedFile.name);
 
-    // Step 3: Generate transcript
-    setProgress(60, 'Generating transcript...');
+    // Step 3: Generate transcript using streaming to avoid extension timeout
+    setProgress(60, 'Generating transcript... (may take 2-3 min for large files)');
+
     const langNote = audioLang === 'auto'
       ? 'Auto-detect the spoken language.'
       : `The audio language is ${audioLang}.`;
@@ -482,8 +483,9 @@ Return TWO sections separated by exactly "---SRT---":
 1. Plain transcript (clean readable text with proper punctuation, paragraphs)
 2. SRT subtitle format (numbered entries with timestamps: 00:00:00,000 --> 00:00:05,000)`;
 
+    // Use streaming API to avoid browser extension connection timeout
     const genResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`,
       {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -496,14 +498,44 @@ Return TWO sections separated by exactly "---SRT---":
       }
     );
 
-    setProgress(90, 'Processing response...');
-    const genData = await genResp.json();
-    if (!genResp.ok) throw new Error(genData.error?.message || 'Generation failed');
+    if (!genResp.ok) {
+      const errData = await genResp.json();
+      throw new Error(errData.error?.message || 'Generation failed: ' + genResp.status);
+    }
 
-    const text = genData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (!text) throw new Error('No transcript returned. Try a shorter file.');
+    // Read streaming response chunks
+    setProgress(65, 'Receiving transcript...');
+    const reader = genResp.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+    let chunkCount = 0;
 
-    const splitParts = text.split('---SRT---');
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, {stream: true});
+      // Each SSE chunk: "data: {...json...}
+
+"
+      const lines = chunk.split('
+');
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const json = JSON.parse(line.slice(6));
+          const part = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          fullText += part;
+          chunkCount++;
+          // Update progress as chunks arrive
+          const pct = Math.min(95, 65 + chunkCount * 2);
+          setProgress(pct, `Receiving transcript... (${fullText.length} chars)`);
+        } catch(e) { /* skip malformed chunks */ }
+      }
+    }
+
+    if (!fullText) throw new Error('No transcript returned. Try a shorter clip.');
+
+    const splitParts = fullText.split('---SRT---');
     transcriptResult = splitParts[0].trim();
     srtResult = splitParts[1]?.trim() || generateFallbackSRT(transcriptResult);
 
