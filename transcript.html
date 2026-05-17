@@ -468,6 +468,16 @@ async function startTranscription() {
     const activeFile = await waitForFile(apiKey, uploadedFile.name);
 
     // Step 3: Generate transcript using streaming to avoid extension timeout
+    // Start a visible timer so user knows generation is alive
+    let genSeconds = 0;
+    const genTimer = setInterval(() => {
+      genSeconds++;
+      const mins = Math.floor(genSeconds / 60);
+      const secs = genSeconds % 60;
+      const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+      setProgress(62, `Generating transcript... (${timeStr} elapsed — large files take 2-4 min)`);
+    }, 1000);
+
     setProgress(60, 'Generating transcript... (may take 2-3 min for large files)');
 
     const langNote = audioLang === 'auto'
@@ -537,10 +547,12 @@ Return TWO sections separated by exactly "---SRT---":
     document.getElementById('transcriptText').textContent = transcriptResult;
     document.getElementById('srtText').textContent = srtResult;
 
+    clearInterval(genTimer);
     setProgress(100, 'Transcription complete!');
     document.getElementById('outputArea').classList.add('show');
 
   } catch(e) {
+    if (typeof genTimer !== 'undefined') clearInterval(genTimer);
     setProgress(0, '');
     document.getElementById('progressText').innerHTML =
       `<span style="color:var(--red)">Error: ${e.message}</span>`;
