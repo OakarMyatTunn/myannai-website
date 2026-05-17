@@ -16,11 +16,10 @@ class Config:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
-    # Azure TTS
-    AZURE_SPEECH_KEY    = os.getenv("AZURE_SPEECH_KEY", "")
-    AZURE_SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION", "southeastasia")
-    AZURE_VOICE_MALE    = "my-MM-ThihaNeural"
-    AZURE_VOICE_FEMALE  = "my-MM-NilarNeural"
+    # TTS — edge-tts (no API key needed)
+    # Uses Microsoft Edge's neural voices: my-MM-ThihaNeural, my-MM-NilarNeural
+    TTS_MYANMAR_MALE   = "my-MM-ThihaNeural"
+    TTS_MYANMAR_FEMALE = "my-MM-NilarNeural"
 
     # Whisper
     WHISPER_MODEL  = os.getenv("WHISPER_MODEL", "medium")

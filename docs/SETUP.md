@@ -52,12 +52,13 @@ npm run dev
 
 Open http://localhost:5173
 
-## Azure TTS Setup
-1. Go to portal.azure.com
-2. Create a resource → Search "Speech"
-3. Create Speech service (Free tier: 500K chars/month)
-4. Go to Keys and Endpoint
-5. Copy Key 1 and Region → paste in .env
+## TTS Setup
+No setup needed! Myanmar neural voice (my-MM-ThihaNeural / my-MM-NilarNeural)
+uses Microsoft Edge's Read Aloud API via edge-tts library.
+- No API key required
+- No Azure account required  
+- Same neural voice quality as Azure Cognitive Services
+- Free and unlimited for personal use
 
 ## Notes
 - Videos stored in storage/outputs/ — auto-deleted after 7 days
