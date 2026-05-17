@@ -1,0 +1,15 @@
+.env
+storage/queue/*
+storage/outputs/*
+storage/uploads/*
+storage/jobs.db
+!storage/queue/.gitkeep
+!storage/outputs/.gitkeep
+!storage/uploads/.gitkeep
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc
+node_modules/
+frontend/dist/
+.DS_Store
+venv/
