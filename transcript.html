@@ -177,7 +177,7 @@ select option{background:var(--bg2)}
       </div>
       <div class="input-group">
         <input type="password" id="apiKey" placeholder="AIzaSy... (get free key at aistudio.google.com)">
-        <button class="btn btn-cyan" onclick="loadModels()">Load</button>
+        <button class="btn btn-cyan" onclick="saveKey()">Load</button>
       </div>
       <div id="apiStatus" style="margin-top:10px;font-size:12px;color:var(--muted)">
         Get your free API key at <a href="https://aistudio.google.com" target="_blank" style="color:var(--accent)">aistudio.google.com</a>
@@ -348,7 +348,7 @@ zone.addEventListener('drop', e => {
 });
 
 // ── API ────────────────────────────────────────────────────────
-function loadModels() {
+function saveKey() {
   const key = document.getElementById('apiKey').value.trim();
   if (!key) return;
   document.getElementById('apiStatus').innerHTML =
@@ -514,11 +514,7 @@ Return TWO sections separated by exactly "---SRT---":
       const {done, value} = await reader.read();
       if (done) break;
       const chunk = decoder.decode(value, {stream: true});
-      // Each SSE chunk: "data: {...json...}
-
-"
-      const lines = chunk.split('
-');
+      const lines = chunk.split('\n');
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
         try {
@@ -526,14 +522,13 @@ Return TWO sections separated by exactly "---SRT---":
           const part = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
           fullText += part;
           chunkCount++;
-          // Update progress as chunks arrive
           const pct = Math.min(95, 65 + chunkCount * 2);
-          setProgress(pct, `Receiving transcript... (${fullText.length} chars)`);
+          setProgress(pct, 'Receiving transcript... (' + fullText.length + ' chars)');
         } catch(e) { /* skip malformed chunks */ }
       }
     }
 
-    if (!fullText) throw new Error('No transcript returned. Try a shorter clip.');
+        if (!fullText) throw new Error('No transcript returned. Try a shorter clip.');
 
     const splitParts = fullText.split('---SRT---');
     transcriptResult = splitParts[0].trim();
