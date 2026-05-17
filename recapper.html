@@ -177,6 +177,31 @@ const zone=document.getElementById('uploadZone');
 zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover')});
 zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
 zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragover');const f=e.dataTransfer.files[0];if(f){currentFile=f;handleFile({files:[f]});}});
+function getMimeType(file){
+  const ext=file.name.split('.').pop().toLowerCase();
+  const map={'mp4':'video/mp4','mkv':'video/x-matroska','mov':'video/quicktime','avi':'video/x-msvideo','wmv':'video/x-ms-wmv','mp3':'audio/mpeg','wav':'audio/wav','m4a':'audio/mp4','webm':'video/webm'};
+  return map[ext]||file.type||'video/mp4';
+}
+async function uploadToGemini(apiKey,file){
+  const mimeType=getMimeType(file);
+  const startResp=await fetch(`https://generativelanguage.googleapis.com/upload/v1beta/files?key=${apiKey}`,{method:'POST',headers:{'X-Goog-Upload-Protocol':'resumable','X-Goog-Upload-Command':'start','X-Goog-Upload-Header-Content-Length':file.size,'X-Goog-Upload-Header-Content-Type':mimeType,'Content-Type':'application/json'},body:JSON.stringify({file:{displayName:file.name}})});
+  if(!startResp.ok){const e=await startResp.json();throw new Error('Upload init failed: '+(e.error?.message||startResp.status));}
+  const uploadUrl=startResp.headers.get('X-Goog-Upload-URL');
+  if(!uploadUrl)throw new Error('No upload URL from Gemini');
+  const uploadResp=await fetch(uploadUrl,{method:'POST',headers:{'X-Goog-Upload-Command':'upload, finalize','X-Goog-Upload-Offset':'0','Content-Type':mimeType},body:file});
+  if(!uploadResp.ok){const e=await uploadResp.json();throw new Error('Upload failed: '+(e.error?.message||uploadResp.status));}
+  const d=await uploadResp.json();return d.file;
+}
+async function waitForFile(apiKey,fileName){
+  for(let i=0;i<30;i++){
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${apiKey}`);
+    const d=await r.json();
+    if(d.state==='ACTIVE')return d;
+    if(d.state==='FAILED')throw new Error('File processing failed');
+    await new Promise(res=>setTimeout(res,3000));
+  }
+  throw new Error('File processing timed out');
+}
 async function startRecap(){
   const apiKey=document.getElementById('apiKey').value.trim();
   const lang=document.getElementById('outputLang').value;
@@ -185,13 +210,14 @@ async function startRecap(){
   document.getElementById('outputArea').classList.remove('show');
   const setP=(pct,msg)=>{document.getElementById('progressFill').style.width=pct+'%';document.getElementById('progressText').textContent=msg;};
   try{
-    setP(10,'Reading video...');
-    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(currentFile);});
-    setP(30,'Sending to Gemini...');
+    setP(10,'Uploading to Gemini...');
+    const uploaded=await uploadToGemini(apiKey,currentFile);
+    setP(35,'Processing file...');
+    const active=await waitForFile(apiKey,uploaded.name);
+    setP(60,'Generating recap...');
     const langPrompt=lang==='myanmar'?'Write ONLY in Myanmar (Burmese) language.':lang==='both'?'Write in BOTH English first, then Myanmar (Burmese).':'Write in English.';
     const prompt=`You are a viral social media scriptwriter. Watch this video and create a compelling recap. ${langPrompt} Start with a HOOK sentence. Use 3-act structure: Setup, Conflict, Resolution. Conversational tone. End with a curiosity hook. 250-350 words. No timestamps.`;
-    setP(60,'Generating recap...');
-    const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt},{inlineData:{mimeType:currentFile.type||'video/mp4',data:b64}}]}]})});
+    const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt},{fileData:{mimeType:active.mimeType,fileUri:active.uri}}]}]})});
     setP(90,'Finalizing...');
     const data=await resp.json();
     if(!resp.ok)throw new Error(data.error?.message||'API error');
