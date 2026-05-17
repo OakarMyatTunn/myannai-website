@@ -422,16 +422,24 @@ async function uploadToGemini(apiKey, file) {
 
 // Step 2: Wait for file to be ACTIVE
 async function waitForFile(apiKey, fileName) {
-  for (let i = 0; i < 30; i++) {
+  // Large HEVC/MKV files can take 3-5 minutes to process
+  const maxAttempts = 60; // 60 × 5s = 5 minutes max
+  for (let i = 0; i < maxAttempts; i++) {
     const r = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${apiKey}`
     );
     const d = await r.json();
     if (d.state === 'ACTIVE') return d;
-    if (d.state === 'FAILED') throw new Error('File processing failed on Gemini servers');
-    await new Promise(res => setTimeout(res, 3000)); // wait 3s between checks
+    if (d.state === 'FAILED') throw new Error('File processing failed on Gemini servers. Try converting to MP4 first.');
+    // Show progress to user
+    const elapsed = Math.round((i * 5) / 60);
+    const pct = 35 + Math.min(20, i); // slowly grows from 35% to 55%
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressText').textContent =
+      `Processing file... ${i > 0 ? '(' + (i*5) + 's elapsed, please wait)' : ''}`;
+    await new Promise(res => setTimeout(res, 5000)); // 5s between checks
   }
-  throw new Error('File processing timed out. Try a smaller file.');
+  throw new Error('File processing timed out after 5 minutes. Try a smaller file or convert to MP4.');
 }
 
 async function startTranscription() {

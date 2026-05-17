@@ -193,14 +193,17 @@ async function uploadToGemini(apiKey,file){
   const d=await uploadResp.json();return d.file;
 }
 async function waitForFile(apiKey,fileName){
-  for(let i=0;i<30;i++){
+  for(let i=0;i<60;i++){
     const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${apiKey}`);
     const d=await r.json();
     if(d.state==='ACTIVE')return d;
-    if(d.state==='FAILED')throw new Error('File processing failed');
-    await new Promise(res=>setTimeout(res,3000));
+    if(d.state==='FAILED')throw new Error('File processing failed. Try converting to MP4.');
+    const pct=35+Math.min(20,i);
+    document.getElementById('progressFill').style.width=pct+'%';
+    document.getElementById('progressText').textContent='Processing file... '+(i>0?'('+i*5+'s elapsed, please wait)':'');
+    await new Promise(res=>setTimeout(res,5000));
   }
-  throw new Error('File processing timed out');
+  throw new Error('Timed out after 5 min. Try a smaller file or convert to MP4.');
 }
 async function startRecap(){
   const apiKey=document.getElementById('apiKey').value.trim();
