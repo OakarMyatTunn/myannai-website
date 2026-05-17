@@ -480,12 +480,21 @@ async function startTranscription() {
 
     setProgress(60, 'Generating transcript... (may take 2-3 min for large files)');
 
+    // Map language codes to full names Gemini understands
+    const langNames = {
+      'en': 'English', 'my': 'Myanmar (Burmese)', 'th': 'Thai',
+      'zh': 'Chinese', 'ja': 'Japanese', 'ko': 'Korean',
+      'auto': 'auto'
+    };
+    const audioLangName = langNames[audioLang] || audioLang;
+    const outputLangName = langNames[outputLang] || outputLang;
+
     const langNote = audioLang === 'auto'
       ? 'Auto-detect the spoken language.'
-      : `The audio language is ${audioLang}.`;
+      : `The audio language is ${audioLangName}.`;
     const outNote = outputLang === 'same'
       ? 'Output in the same language as the audio.'
-      : `Translate output to ${outputLang}.`;
+      : `Translate the entire output to ${outputLangName}. Every word must be in ${outputLangName}.`;
 
     const prompt = `You are an expert transcription AI. ${langNote} ${outNote}
 Transcribe every word spoken in this audio/video file accurately.

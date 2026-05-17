@@ -218,7 +218,7 @@ async function startRecap(){
     setP(35,'Processing file...');
     const active=await waitForFile(apiKey,uploaded.name);
     setP(60,'Generating recap...');
-    const langPrompt=lang==='myanmar'?'Write ONLY in Myanmar (Burmese) language.':lang==='both'?'Write in BOTH English first, then Myanmar (Burmese).':'Write in English.';
+    const langPrompt=lang==='myanmar'?'Write ONLY in Myanmar (Burmese/မြန်မာဘာသာ) language. Every single word must be in Myanmar language.':lang==='both'?'Write in BOTH languages. First write the full recap in English, then write the full recap again in Myanmar (Burmese/မြန်မာဘာသာ).':'Write in English.';
     const prompt=`You are a viral social media scriptwriter. Watch this video and create a compelling recap. ${langPrompt} Start with a HOOK sentence. Use 3-act structure: Setup, Conflict, Resolution. Conversational tone. End with a curiosity hook. 250-350 words. No timestamps.`;
     const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt},{fileData:{mimeType:active.mimeType,fileUri:active.uri}}]}]})});
     setP(90,'Finalizing...');
