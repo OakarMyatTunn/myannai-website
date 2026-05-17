@@ -1,15 +1,35 @@
-# MyannAI Website
+# MyannAI SaaS
 
-Free AI tools for Myanmar and beyond.
+AI-powered video recap and dubbing platform for Myanmar content creators.
 
-**Live site:** https://oakarmyattunn.github.io/myannai-website
+## Stack
+- **Backend:** FastAPI + Python + SQLite + RQ
+- **Frontend:** React + Vite + Tailwind
+- **AI:** Whisper (transcription) + Gemini (scripts) + Azure Neural TTS (Myanmar voice)
+- **Video:** ffmpeg (assembly, effects, overlays)
 
-## Tools
-- 🎙️ [Transcript AI](https://oakarmyattunn.github.io/myannai-website/transcript.html) — Audio & video to text
-- 🎬 [Recapper AI](https://oakarmyattunn.github.io/myannai-website/recapper.html) — Video summarizer
-- 🔊 [TTS AI](https://oakarmyattunn.github.io/myannai-website/tts.html) — Text to speech
+## Features
+- YouTube / TikTok / Facebook / Instagram / Xiaohongshu URL input
+- 6 script styles: Standard, Story, Quick, Dramatic, Comedy, Educational
+- Natural Myanmar voice (Azure Neural TTS)
+- Natural English voice (Kokoro local)
+- 9:16 auto-crop, flip, auto color grade
+- Copyright bypass processing
+- Burned subtitles
+- Custom blur mask (draw regions to blur)
+- Logo watermark
+- Intro / Outro video support
+- 7-day auto-delete storage
+- Real-time job progress
 
-## Tech
-- Pure HTML/CSS/JS — no framework, no server
-- Gemini API (user provides their own key)
-- Hosted on GitHub Pages (free)
+## Setup
+See `docs/SETUP.md`
+
+## Run
+```bash
+# Backend
+cd backend && uvicorn main:app --reload --port 8000
+
+# Frontend
+cd frontend && npm run dev
+```
